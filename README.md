@@ -91,6 +91,10 @@ const { Contract } = require('fabric-contract-api');
 class MyContract extends Contract {
 
     async instantiate(ctx) {
+      const item1 = { field: 'somevalue1', value: 'value1' };
+      const item2 = { field: 'somevalue2', value: 'value2' };
+      await ctx.stub.putState('ITEM1', Buffer.from(JSON.stringify(item1)));
+      await ctx.stub.putState('ITEM2', Buffer.from(JSON.stringify(item2)));    
       let greeting = { text: 'Instantiate was called!' };
       await ctx.stub.putState('GREETING', Buffer.from(JSON.stringify(greeting)));
     }
@@ -102,6 +106,23 @@ class MyContract extends Contract {
         return JSON.stringify(greeting);
     }
 
+    async getData(ctx, startKey, endKey) {
+        console.info(`getData : startKey=${startKey}, endKey=${endKey}`);
+        const iterator = await ctx.stub.getStateByRange(startKey, endKey);
+        const result = [];
+        let res = await iterator.next();
+        while (!res.done) {
+          if (res.value) {
+            console.log(`found state item with key: ${res.value.key}, value: ${res.value.value.toString('utf8')}`);
+            const obj = JSON.parse(res.value.value.toString('utf8'));
+            result.push(obj);
+          }
+          res = await iterator.next();
+        }
+        await iterator.close();
+        return result;
+    }
+    
 }
 
 module.exports = MyContract;
